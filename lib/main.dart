@@ -17,10 +17,11 @@ class AppointMe extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.local_hospital,
-                size: 90,
-                color: Colors.white,
+              Image.asset(
+                'assets/WhatsApp Image 2026-08-21 at 7.27.27 PM.jpeg',
+                width: 120,
+                height: 120,
+                fit: BoxFit.contain,
               ),
 
               const SizedBox(height: 20),
@@ -48,5 +49,5 @@ class AppointMe extends StatelessWidget {
         ),
       ),
     );
-  }
 }
+  }
