@@ -12,6 +12,7 @@ class AppointMe extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
+        
         backgroundColor: const Color(0xFF0B1F3A),
         body: Center(
           child: Column(
@@ -49,5 +50,5 @@ class AppointMe extends StatelessWidget {
         ),
       ),
     );
-}
   }
+}
