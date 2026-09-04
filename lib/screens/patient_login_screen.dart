@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'patient_signin_screen.dart';
+import 'patient_signup_screen.dart';
 
 class PatientLoginScreen extends StatelessWidget {
   const PatientLoginScreen({super.key});
@@ -65,12 +67,13 @@ class PatientLoginScreen extends StatelessWidget {
                 height: 58,
                 child: ElevatedButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Patient Sign In selected'),
-                      ),
-                    );
-                  },
+                    Navigator.push(
+                     context,
+                     MaterialPageRoute(
+                      builder: (context) => const PatientSigninScreen(),
+                     ),
+                   );
+                 },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1565C0),
                     foregroundColor: Colors.white,
@@ -95,13 +98,18 @@ class PatientLoginScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 58,
                 child: OutlinedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Patient Sign Up selected'),
-                      ),
-                    );
-                  },
+                 
+                 onPressed: () 
+                 {
+                  Navigator.push
+                  (
+                   context,
+                   MaterialPageRoute
+                   (
+                    builder: (context) => const PatientSignupScreen(),
+                   ),
+                  );
+                 },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF1565C0),
                     side: const BorderSide(
