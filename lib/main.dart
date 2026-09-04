@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'screens/clinic_home_screen.dart';
+import 'screens/login_screen.dart';
+
 void main() {
   runApp(const AppointMe());
 }
@@ -11,7 +12,7 @@ class AppointMe extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const ClinicHomeScreen(),
+      home: const LoginScreen(),
     );
   }
 }
