@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import 'token_screen.dart';
 
 class BookAppointmentScreen extends StatelessWidget {
-  const BookAppointmentScreen({super.key});
+  final String clinicName;
+  final String doctorName;
+
+  const BookAppointmentScreen({
+    super.key,
+    required this.clinicName,
+    required this.doctorName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +32,6 @@ class BookAppointmentScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             const Text(
               "Clinic Details",
               style: TextStyle(
@@ -43,10 +49,9 @@ class BookAppointmentScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
-                    const Row(
+                    Row(
                       children: [
-                        CircleAvatar(
+                        const CircleAvatar(
                           radius: 28,
                           backgroundColor: Color(0xFFE3F2FD),
                           child: Icon(
@@ -56,12 +61,12 @@ class BookAppointmentScreen extends StatelessWidget {
                           ),
                         ),
 
-                        SizedBox(width: 15),
+                        const SizedBox(width: 15),
 
                         Expanded(
                           child: Text(
-                            "ABC Clinic",
-                            style: TextStyle(
+                            clinicName,
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
@@ -72,16 +77,20 @@ class BookAppointmentScreen extends StatelessWidget {
 
                     const SizedBox(height: 15),
 
-                    const Text(
-                      "👨‍⚕️ Dr. Patel",
-                      style: TextStyle(fontSize: 16),
+                    Text(
+                      "👨‍⚕️ $doctorName",
+                      style: const TextStyle(
+                        fontSize: 16,
+                      ),
                     ),
 
                     const SizedBox(height: 8),
 
                     const Text(
                       "📍 Dahod",
-                      style: TextStyle(fontSize: 16),
+                      style: TextStyle(
+                        fontSize: 16,
+                      ),
                     ),
                   ],
                 ),
@@ -105,14 +114,13 @@ class BookAppointmentScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-
-                    ListTile(
-                      leading: const Icon(
+                    const ListTile(
+                      leading: Icon(
                         Icons.calendar_today,
                         color: Colors.blue,
                       ),
-                      title: const Text("Appointment Date"),
-                      subtitle: const Text(
+                      title: Text("Appointment Date"),
+                      subtitle: Text(
                         "Today - 04 September 2026",
                       ),
                     ),
@@ -129,7 +137,6 @@ class BookAppointmentScreen extends StatelessWidget {
                         "Token will be generated after confirmation",
                       ),
                     ),
-
                   ],
                 ),
               ),
@@ -149,7 +156,9 @@ class BookAppointmentScreen extends StatelessWidget {
                     ),
                   );
                 },
-                icon: const Icon(Icons.check_circle),
+                icon: const Icon(
+                  Icons.check_circle,
+                ),
                 label: const Text(
                   "Confirm Appointment",
                   style: TextStyle(
@@ -158,7 +167,6 @@ class BookAppointmentScreen extends StatelessWidget {
                 ),
               ),
             ),
-
           ],
         ),
       ),

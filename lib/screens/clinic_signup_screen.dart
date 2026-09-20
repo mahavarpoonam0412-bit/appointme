@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'clinic_home_screen.dart';
 class ClinicSignupScreen extends StatefulWidget {
   const ClinicSignupScreen({super.key});
 
@@ -34,14 +34,15 @@ class _ClinicSignupScreenState extends State<ClinicSignupScreen> {
   }
 
   void signUp() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Clinic account created successfully'),
-        ),
-      );
-    }
+  if (_formKey.currentState!.validate()) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ClinicHomeScreen(),
+      ),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {

@@ -39,9 +39,7 @@ class _SplashScreenState extends State<SplashScreen> {
               height: 120,
               fit: BoxFit.contain,
             ),
-
             const SizedBox(height: 20),
-
             const Text(
               'AppointMe',
               style: TextStyle(
@@ -50,9 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 10),
-
             const Text(
               'Smart Clinic Appointment',
               style: TextStyle(

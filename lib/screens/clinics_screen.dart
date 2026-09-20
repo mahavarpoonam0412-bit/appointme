@@ -24,8 +24,6 @@ class ClinicsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-
-            // Search Clinic
             TextField(
               decoration: InputDecoration(
                 hintText: "Search Clinic...",
@@ -43,8 +41,7 @@ class ClinicsScreen extends StatelessWidget {
             Expanded(
               child: ListView(
                 children: [
-
-                  // Clinic 1
+                  // ABC Clinic
                   Card(
                     elevation: 3,
                     margin: const EdgeInsets.only(bottom: 15),
@@ -53,7 +50,6 @@ class ClinicsScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-
                           Row(
                             children: [
                               const CircleAvatar(
@@ -80,9 +76,7 @@ class ClinicsScreen extends StatelessWidget {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-
                                     SizedBox(height: 5),
-
                                     Text(
                                       "Dr. Patel",
                                       style: TextStyle(
@@ -139,10 +133,11 @@ class ClinicsScreen extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const BookAppointmentScreen(),
-                                    ),
-                                 );
-                               },
+                                    builder: (context) =>
+                                        BookAppointmentScreen(clinicName: "ABC Clinic",doctorName:"Dr. Patel"),
+                                  ),
+                                );
+                              },
                               icon: const Icon(
                                 Icons.calendar_month,
                               ),
@@ -156,7 +151,7 @@ class ClinicsScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // Clinic 2
+                  // City Clinic
                   Card(
                     elevation: 3,
                     margin: const EdgeInsets.only(bottom: 15),
@@ -165,7 +160,6 @@ class ClinicsScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-
                           Row(
                             children: [
                               const CircleAvatar(
@@ -192,9 +186,7 @@ class ClinicsScreen extends StatelessWidget {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-
                                     SizedBox(height: 5),
-
                                     Text(
                                       "Dr. Sharma",
                                       style: TextStyle(
@@ -251,10 +243,11 @@ class ClinicsScreen extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const BookAppointmentScreen(),
+                                    builder: (context) =>
+                                        BookAppointmentScreen(clinicName:"City Clinic",doctorName:"Dr. Sharma"),
                                   ),
-                                 );
-                                },
+                                );
+                              },
                               icon: const Icon(
                                 Icons.calendar_month,
                               ),

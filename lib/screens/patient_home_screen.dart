@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'clinics_screen.dart';
-import 'live_queue _screen.dart';
+import 'live_queue_screen.dart';
 class PatientHomeScreen extends StatelessWidget {
   const PatientHomeScreen({super.key});
 

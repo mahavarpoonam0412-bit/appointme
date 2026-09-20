@@ -1,10 +1,22 @@
 import 'package:flutter/material.dart';
-import 'screens/login_screen.dart';
+import 'package:flutter/services.dart';
+import 'screens/splash_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.immersiveSticky,
+  );
+
   runApp(const AppointMe());
 }
-
 class AppointMe extends StatelessWidget {
   const AppointMe({super.key});
 
@@ -12,7 +24,7 @@ class AppointMe extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const LoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'patient_navigation.dart';
+import 'forgot_password_screen.dart';
 
 class PatientSigninScreen extends StatefulWidget {
   const PatientSigninScreen({super.key});
@@ -23,14 +25,15 @@ class _PatientSigninScreenState extends State<PatientSigninScreen> {
   }
 
   void signIn() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Patient Sign In successful'),
-        ),
-      );
-    }
+  if (_formKey.currentState!.validate()) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const PatientNavigation(),
+      ),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -172,16 +175,21 @@ class _PatientSigninScreenState extends State<PatientSigninScreen> {
                 const SizedBox(height: 20),
 
                 TextButton(
-                  onPressed: () {
-                    // Forgot password functionality later
-                  },
-                  child: const Text(
-                    'Forgot Password?',
-                    style: TextStyle(
-                      color: Color(0xFF1565C0),
-                    ),
-                  ),
-                ),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ForgotPasswordScreen(),
+      ),
+    );
+  },
+  child: const Text(
+    'Forgot Password?',
+    style: TextStyle(
+      color: Color(0xFF1565C0),
+    ),
+  ),
+),
               ],
             ),
           ),

@@ -13,9 +13,7 @@ class TokenScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         title: const Text(
           "Appointment Confirmed",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
 
@@ -25,21 +23,13 @@ class TokenScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-
-              const Icon(
-                Icons.check_circle,
-                color: Colors.green,
-                size: 80,
-              ),
+              const Icon(Icons.check_circle, color: Colors.green, size: 80),
 
               const SizedBox(height: 15),
 
               const Text(
                 "Appointment Confirmed!",
-                style: TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 30),
@@ -50,13 +40,9 @@ class TokenScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(25),
                   child: Column(
                     children: [
-
                       const Text(
                         "Your Token Number",
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
 
                       const SizedBox(height: 10),
@@ -84,22 +70,14 @@ class TokenScreen extends StatelessWidget {
 
                       const SizedBox(height: 8),
 
-                      const Text(
-                        "Dr. Patel",
-                        style: TextStyle(
-                          fontSize: 16,
-                        ),
-                      ),
+                      const Text("Dr. Patel", style: TextStyle(fontSize: 16)),
 
                       const SizedBox(height: 15),
 
                       const Text(
                         "📅 Appointment Date: 04 September 2026",
-                        style: TextStyle(
-                          fontSize: 15,
-                        ),
+                        style: TextStyle(fontSize: 15),
                       ),
-
                     ],
                   ),
                 ),
@@ -109,20 +87,14 @@ class TokenScreen extends StatelessWidget {
 
               const Text(
                 "Currently Serving: Token 14",
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 8),
 
               const Text(
                 "4 Patients Before You",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
 
               const SizedBox(height: 30),
@@ -136,13 +108,10 @@ class TokenScreen extends StatelessWidget {
                   },
                   child: const Text(
                     "Back to Clinics",
-                    style: TextStyle(
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(fontSize: 16),
                   ),
                 ),
               ),
-
             ],
           ),
         ),

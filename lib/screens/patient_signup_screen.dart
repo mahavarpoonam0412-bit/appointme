@@ -1,4 +1,9 @@
+import 'package:appointme/screens/patient_navigation.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'patient_navigation.dart';
 
 class PatientSignupScreen extends StatefulWidget {
   const PatientSignupScreen({super.key});
@@ -29,15 +34,42 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
     super.dispose();
   }
 
-  void signUp() {
-    if (_formKey.currentState!.validate()) {
+  Future<void> signUp() async {
+  if (_formKey.currentState!.validate()) {
+    try {
+      // Firebase Authentication me account create hoga
+      UserCredential userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: mobileController.text.trim() + "@appointme.com",
+        password: passwordController.text.trim(),
+      );
+
+      // Firestore me patient data save hoga
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'name': nameController.text.trim(),
+        'age': ageController.text.trim(),
+        'mobile': mobileController.text.trim(),
+        'role': 'patient',
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Patient account created successfully'),
         ),
       );
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      );
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -159,9 +191,7 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        hidePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
+                        hidePassword ? Icons.visibility_off : Icons.visibility,
                       ),
                       onPressed: () {
                         setState(() {

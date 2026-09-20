@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "25922951959",
+    "project_id": "appointme-2216c",
+    "storage_bucket": "appointme-2216c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:25922951959:android:7c3413b770cf00824a7552",
+        "android_client_info": {
+          "package_name": "com.example.appointme"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAIzwU9a-aTAvKioL2hkbniic6rtBxPOok"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

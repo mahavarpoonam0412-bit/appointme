@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'clinic_home_screen.dart';
+import 'forgot_password_screen.dart';
 
 class ClinicSigninScreen extends StatefulWidget {
   const ClinicSigninScreen({super.key});
@@ -259,23 +260,22 @@ class _ClinicSigninScreenState extends State<ClinicSigninScreen> {
 
 
 
-                TextButton(
-
-                  onPressed:(){},
-
-                  child: const Text(
-
-                    "Forgot Password?",
-
-                    style:TextStyle(
-
-                      color:Color(0xFF1565C0),
-
-                    ),
-
-                  ),
-
-                ),
+               TextButton(
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ForgotPasswordScreen(),
+      ),
+    );
+  },
+  child: const Text(
+    "Forgot Password?",
+    style: TextStyle(
+      color: Color(0xFF1565C0),
+    ),
+  ),
+),
 
 
               ],
