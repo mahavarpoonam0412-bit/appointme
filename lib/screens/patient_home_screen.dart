@@ -1,10 +1,37 @@
 import 'package:flutter/material.dart';
 import 'clinics_screen.dart';
 import 'live_queue_screen.dart';
-class PatientHomeScreen extends StatelessWidget {
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+class PatientHomeScreen extends StatefulWidget {
+
   const PatientHomeScreen({super.key});
 
   @override
+  State<PatientHomeScreen> createState() => _PatientHomeScreenState();
+}
+
+class _PatientHomeScreenState extends State<PatientHomeScreen> {
+  String patientName = "Patient";
+  @override
+void initState() {
+  super.initState();
+  getPatientName();
+}
+
+Future<void> getPatientName() async {
+  User? user = FirebaseAuth.instance.currentUser;
+
+  if (user != null) {
+    var data = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid)
+        .get();
+
+    setState(() {
+patientName = data["name"].toString();    });
+  }
+}
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
@@ -24,8 +51,7 @@ class PatientHomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              const Text(
-                "Hello Patient 👋",
+              Text("Hello $patientName 👋",
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,

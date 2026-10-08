@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'clinic_profile_screen.dart';
 
 class ClinicHomeScreen extends StatefulWidget {
@@ -11,6 +14,38 @@ class ClinicHomeScreen extends StatefulWidget {
 class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
   int currentToken = 14;
   int totalPatients = 18;
+
+  String clinicName = "Clinic";
+  String doctorName = "Doctor";
+
+  @override
+  void initState() {
+    super.initState();
+    getClinicDetails();
+  }
+
+  // Firebase se clinic ka naam aur doctor/owner ka naam lana
+  Future<void> getClinicDetails() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        DocumentSnapshot data = await FirebaseFirestore.instance
+            .collection("clinics")
+            .doc(user.uid)
+            .get();
+
+        if (data.exists) {
+          setState(() {
+            clinicName = data["clinicName"]?.toString() ?? "Clinic";
+            doctorName = data["ownerName"]?.toString() ?? "Doctor";
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading clinic details: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,24 +64,26 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
           ),
         ),
         actions: [
-  IconButton(
-    icon: const Icon(Icons.person),
-    onPressed: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const ClinicProfileScreen(),
-        ),
-      );
-    },
-  ),
-],
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ClinicProfileScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
+
         child: Column(
           children: [
+
             const SizedBox(height: 10),
 
             const Icon(
@@ -57,9 +94,11 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
 
             const SizedBox(height: 10),
 
-            const Text(
-              "ABC Clinic",
-              style: TextStyle(
+            // Dynamic Clinic Name
+            Text(
+              clinicName,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
               ),
@@ -67,81 +106,86 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
 
             const SizedBox(height: 5),
 
-            const Text(
-              "Dr. Patel",
-              style: TextStyle(
+            // Dynamic Doctor/Owner Name
+            Text(
+              doctorName,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
                 fontSize: 17,
                 color: Colors.grey,
               ),
             ),
 
             const SizedBox(height: 25),
+
             // Today's Queue
+            Card(
+              elevation: 3,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
 
-Card(
-  elevation: 3,
-  child: Padding(
-    padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
 
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
 
-      children: [
+                    const Text(
+                      "Today's Queue",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
 
-        const Text(
-          "Today's Queue",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+                    const SizedBox(height: 15),
 
-        const SizedBox(height: 15),
+                    const ListTile(
+                      leading: Icon(
+                        Icons.confirmation_number,
+                        color: Colors.blue,
+                      ),
+                      title: Text("Token 15 - Rahul"),
+                    ),
 
-        ListTile(
-          leading: const Icon(
-            Icons.confirmation_number,
-            color: Colors.blue,
-          ),
-          title: const Text("Token 15 - Rahul"),
-        ),
+                    const ListTile(
+                      leading: Icon(
+                        Icons.confirmation_number,
+                        color: Colors.blue,
+                      ),
+                      title: Text("Token 16 - Amit"),
+                    ),
 
-        ListTile(
-          leading: const Icon(
-            Icons.confirmation_number,
-            color: Colors.blue,
-          ),
-          title: const Text("Token 16 - Amit"),
-        ),
+                    const ListTile(
+                      leading: Icon(
+                        Icons.confirmation_number,
+                        color: Colors.blue,
+                      ),
+                      title: Text("Token 17 - Poonam"),
+                    ),
 
-        ListTile(
-          leading: const Icon(
-            Icons.confirmation_number,
-            color: Colors.blue,
-          ),
-          title: const Text("Token 17 - Poonam"),
-        ),
+                    const ListTile(
+                      leading: Icon(
+                        Icons.confirmation_number,
+                        color: Colors.blue,
+                      ),
+                      title: Text("Token 18 - Patient"),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
-        ListTile(
-          leading: const Icon(
-            Icons.confirmation_number,
-            color: Colors.blue,
-          ),
-          title: const Text("Token 18 - Patient"),
-        ),
-
-      ],
-    ),
-  ),
-),
+            const SizedBox(height: 15),
 
             // Current Token
             Card(
               elevation: 3,
               child: Padding(
                 padding: const EdgeInsets.all(20),
+
                 child: Column(
                   children: [
+
                     const Text(
                       "Current Token",
                       style: TextStyle(
@@ -229,9 +273,12 @@ Card(
             SizedBox(
               width: double.infinity,
               height: 55,
+
               child: ElevatedButton.icon(
                 onPressed: () {
+
                   if (currentToken < totalPatients) {
+
                     setState(() {
                       currentToken++;
                     });
@@ -243,7 +290,9 @@ Card(
                         ),
                       ),
                     );
+
                   } else {
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
@@ -264,6 +313,8 @@ Card(
                 ),
               ),
             ),
+
+            const SizedBox(height: 20),
           ],
         ),
       ),

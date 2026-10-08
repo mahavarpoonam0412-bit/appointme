@@ -14,7 +14,7 @@ class PatientSignupScreen extends StatefulWidget {
 
 class _PatientSignupScreenState extends State<PatientSignupScreen> {
   final _formKey = GlobalKey<FormState>();
-
+  final emailController = TextEditingController();
   final nameController = TextEditingController();
   final ageController = TextEditingController();
   final mobileController = TextEditingController();
@@ -26,6 +26,7 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
 
   @override
   void dispose() {
+    emailController.dispose();
     nameController.dispose();
     ageController.dispose();
     mobileController.dispose();
@@ -37,29 +38,33 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
   Future<void> signUp() async {
   if (_formKey.currentState!.validate()) {
     try {
+
       // Firebase Authentication me account create hoga
       UserCredential userCredential =
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: mobileController.text.trim() + "@appointme.com",
+        email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
       // Firestore me patient data save hoga
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .set({
-        'name': nameController.text.trim(),
-        'age': ageController.text.trim(),
-        'mobile': mobileController.text.trim(),
-        'role': 'patient',
-      });
+     await FirebaseFirestore.instance
+    .collection('users')
+    .doc(userCredential.user!.uid)
+    .set({
+  'email': emailController.text.trim().toLowerCase(),
+  'name': nameController.text.trim(),
+  'age': ageController.text.trim(),
+  'mobile': mobileController.text.trim(),
+  'role': 'patient',
+  'uid': userCredential.user!.uid,
+});
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Patient account created successfully'),
-        ),
-      );
+     Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(
+    builder: (context) => const PatientNavigation(),
+  ),
+);
 
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -116,8 +121,30 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
                 ),
 
                 const SizedBox(height: 30),
-
                 TextFormField(
+  controller: emailController,
+  keyboardType: TextInputType.emailAddress,
+  decoration: InputDecoration(
+    labelText: 'Email',
+    hintText: 'Enter your email',
+    prefixIcon: const Icon(Icons.email),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(15),
+    ),
+  ),
+  validator: (value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter email';
+    }
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+  return 'Enter valid email';
+}
+    return null;
+  },
+),
+const SizedBox(height: 18),
+                TextFormField(
+                  
                   controller: nameController,
                   decoration: InputDecoration(
                     labelText: 'Full Name',
@@ -134,7 +161,7 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
                     return null;
                   },
                 ),
-
+                
                 const SizedBox(height: 18),
 
                 TextFormField(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'clinic_home_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 class ClinicSignupScreen extends StatefulWidget {
   const ClinicSignupScreen({super.key});
 
@@ -33,14 +35,49 @@ class _ClinicSignupScreenState extends State<ClinicSignupScreen> {
     super.dispose();
   }
 
-  void signUp() {
+  Future<void> signUp() async {
   if (_formKey.currentState!.validate()) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const ClinicHomeScreen(),
-      ),
-    );
+
+    try {
+
+      UserCredential userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      await FirebaseFirestore.instance
+          .collection("clinics")
+          .doc(userCredential.user!.uid)
+          .set({
+        "clinicName": clinicNameController.text.trim(),
+        "ownerName": ownerNameController.text.trim(),
+        "mobile": mobileController.text.trim(),
+        "email": emailController.text.trim(),
+        "address": addressController.text.trim(),
+        "role": "Clinic",
+        "uid": userCredential.user!.uid,
+      });
+
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ClinicHomeScreen(),
+        ),
+      );
+
+
+    } catch (e) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      );
+
+    }
+
   }
 }
 
