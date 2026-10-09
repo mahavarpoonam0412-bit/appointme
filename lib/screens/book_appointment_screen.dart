@@ -5,13 +5,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'token_screen.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
+  final String clinicId;
   final String clinicName;
   final String doctorName;
+  final String address;
 
   const BookAppointmentScreen({
     super.key,
+    required this.clinicId,
     required this.clinicName,
     required this.doctorName,
+    required this.address,
   });
 
   @override
@@ -21,7 +25,6 @@ class BookAppointmentScreen extends StatefulWidget {
 
 class _BookAppointmentScreenState
     extends State<BookAppointmentScreen> {
-
   bool isLoading = false;
 
   Future<void> confirmAppointment() async {
@@ -47,29 +50,17 @@ class _BookAppointmentScreenState
       String patientName = "Patient";
 
       if (userData.exists) {
-        patientName =
-            userData["name"]?.toString() ?? "Patient";
+        final data = userData.data() as Map<String, dynamic>?;
+
+        if (data != null) {
+          patientName = data["name"]?.toString() ?? "Patient";
+        }
       }
 
-      // Clinic ko clinic name se find karna
-      QuerySnapshot clinicQuery =
-          await FirebaseFirestore.instance
-              .collection("clinics")
-              .where(
-                "clinicName",
-                isEqualTo: widget.clinicName,
-              )
-              .limit(1)
-              .get();
-
-      if (clinicQuery.docs.isEmpty) {
-        throw Exception("Clinic not found.");
-      }
-
-      DocumentSnapshot clinicDoc =
-          clinicQuery.docs.first;
-
-      DocumentReference clinicRef = clinicDoc.reference;
+      // Selected clinic ka direct Firebase document
+      DocumentReference clinicRef = FirebaseFirestore.instance
+          .collection("clinics")
+          .doc(widget.clinicId);
 
       // Aaj ki date
       DateTime now = DateTime.now();
@@ -80,35 +71,42 @@ class _BookAppointmentScreenState
       // Token generate karna
       int generatedToken = 1;
 
-      await FirebaseFirestore.instance
-          .runTransaction((transaction) async {
+      await FirebaseFirestore.instance.runTransaction(
+        (transaction) async {
+          DocumentSnapshot snapshot =
+              await transaction.get(clinicRef);
 
-        DocumentSnapshot snapshot =
-            await transaction.get(clinicRef);
+          if (!snapshot.exists) {
+            throw Exception("Clinic not found.");
+          }
 
-        Map<String, dynamic> data =
-            snapshot.data() as Map<String, dynamic>;
+          final data =
+              snapshot.data() as Map<String, dynamic>;
 
-        String lastTokenDate =
-            data["lastTokenDate"]?.toString() ?? "";
+          String lastTokenDate =
+              data["lastTokenDate"]?.toString() ?? "";
 
-        int lastToken =
-            (data["lastToken"] ?? 0) as int;
+          int lastToken = 0;
 
-        if (lastTokenDate == today) {
-          generatedToken = lastToken + 1;
-        } else {
-          generatedToken = 1;
-        }
+          if (data["lastToken"] is int) {
+            lastToken = data["lastToken"];
+          }
 
-        transaction.update(
-          clinicRef,
-          {
-            "lastTokenDate": today,
-            "lastToken": generatedToken,
-          },
-        );
-      });
+          if (lastTokenDate == today) {
+            generatedToken = lastToken + 1;
+          } else {
+            generatedToken = 1;
+          }
+
+          transaction.update(
+            clinicRef,
+            {
+              "lastTokenDate": today,
+              "lastToken": generatedToken,
+            },
+          );
+        },
+      );
 
       // Appointment Firebase me save karna
       await FirebaseFirestore.instance
@@ -117,19 +115,17 @@ class _BookAppointmentScreenState
         "patientId": user.uid,
         "patientName": patientName,
 
-        "clinicId": clinicDoc.id,
-        "clinicName": widget.clinicName,
+        // Actual Firebase clinic ID
+        "clinicId": widget.clinicId,
 
+        "clinicName": widget.clinicName,
         "doctorName": widget.doctorName,
+        "address": widget.address,
 
         "token": generatedToken,
-
         "appointmentDate": today,
-
         "status": "waiting",
-
-        "createdAt":
-            FieldValue.serverTimestamp(),
+        "createdAt": FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
@@ -139,11 +135,11 @@ class _BookAppointmentScreenState
         context,
         MaterialPageRoute(
           builder: (context) => TokenScreen(
-          tokenNumber: generatedToken,
-          clinicName: widget.clinicName,
-          doctorName: widget.doctorName,
-          appointmentDate: today,
-),
+            tokenNumber: generatedToken,
+            clinicName: widget.clinicName,
+            doctorName: widget.doctorName,
+            appointmentDate: today,
+          ),
         ),
       );
 
@@ -154,7 +150,6 @@ class _BookAppointmentScreenState
           ),
         ),
       );
-
     } catch (e) {
       if (!mounted) return;
 
@@ -200,11 +195,8 @@ class _BookAppointmentScreenState
         padding: const EdgeInsets.all(16),
 
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             const Text(
               "Clinic Details",
               style: TextStyle(
@@ -219,18 +211,15 @@ class _BookAppointmentScreenState
               elevation: 3,
 
               child: Padding(
-                padding:
-                    const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
 
                 child: Column(
                   crossAxisAlignment:
                       CrossAxisAlignment.start,
 
                   children: [
-
                     Row(
                       children: [
-
                         const CircleAvatar(
                           radius: 28,
                           backgroundColor:
@@ -238,8 +227,7 @@ class _BookAppointmentScreenState
 
                           child: Icon(
                             Icons.local_hospital,
-                            color:
-                                Color(0xFF1565C0),
+                            color: Color(0xFF1565C0),
                             size: 30,
                           ),
                         ),
@@ -249,9 +237,7 @@ class _BookAppointmentScreenState
                         Expanded(
                           child: Text(
                             widget.clinicName,
-
-                            style:
-                                const TextStyle(
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight:
                                   FontWeight.bold,
@@ -265,20 +251,16 @@ class _BookAppointmentScreenState
 
                     Text(
                       "👨‍⚕️ ${widget.doctorName}",
-
-                      style:
-                          const TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                       ),
                     ),
 
                     const SizedBox(height: 8),
 
-                    const Text(
-                      "📍 Dahod",
-
-                      style:
-                          TextStyle(
+                    Text(
+                      "📍 ${widget.address}",
+                      style: const TextStyle(
                         fontSize: 16,
                       ),
                     ),
@@ -291,11 +273,9 @@ class _BookAppointmentScreenState
 
             const Text(
               "Appointment Details",
-
               style: TextStyle(
                 fontSize: 22,
-                fontWeight:
-                    FontWeight.bold,
+                fontWeight: FontWeight.bold,
               ),
             ),
 
@@ -303,12 +283,10 @@ class _BookAppointmentScreenState
 
             Card(
               child: Padding(
-                padding:
-                    const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
 
                 child: Column(
                   children: [
-
                     ListTile(
                       leading: const Icon(
                         Icons.calendar_today,
@@ -319,8 +297,9 @@ class _BookAppointmentScreenState
                         "Appointment Date",
                       ),
 
-                      subtitle:
-                          Text("Today - $today"),
+                      subtitle: Text(
+                        "Today - $today",
+                      ),
                     ),
 
                     const Divider(),
@@ -331,8 +310,7 @@ class _BookAppointmentScreenState
                         color: Colors.green,
                       ),
 
-                      title:
-                          Text("Token"),
+                      title: Text("Token"),
 
                       subtitle: Text(
                         "Token will be generated after confirmation",
@@ -350,16 +328,15 @@ class _BookAppointmentScreenState
               height: 52,
 
               child: ElevatedButton.icon(
-
-                onPressed:
-                    isLoading
-                        ? null
-                        : confirmAppointment,
+                onPressed: isLoading
+                    ? null
+                    : confirmAppointment,
 
                 icon: isLoading
                     ? const SizedBox(
                         width: 22,
                         height: 22,
+
                         child:
                             CircularProgressIndicator(
                           color: Colors.white,
@@ -375,8 +352,7 @@ class _BookAppointmentScreenState
                       ? "Confirming..."
                       : "Confirm Appointment",
 
-                  style:
-                      const TextStyle(
+                  style: const TextStyle(
                     fontSize: 17,
                   ),
                 ),

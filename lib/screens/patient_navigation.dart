@@ -9,11 +9,12 @@ class PatientNavigation extends StatefulWidget {
   const PatientNavigation({super.key});
 
   @override
-  State<PatientNavigation> createState() => _PatientNavigationState();
+  State<PatientNavigation> createState() =>
+      _PatientNavigationState();
 }
 
-class _PatientNavigationState extends State<PatientNavigation> {
-
+class _PatientNavigationState
+    extends State<PatientNavigation> {
   int currentIndex = 0;
 
   final List<Widget> screens = [
@@ -23,62 +24,98 @@ class _PatientNavigationState extends State<PatientNavigation> {
     const ProfileScreen(),
   ];
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
-      body: screens[currentIndex],
-
-      bottomNavigationBar: SafeArea(
-  child: BottomNavigationBar(
-    currentIndex: currentIndex,
-
-    type: BottomNavigationBarType.fixed,
-
-    backgroundColor: Colors.white,
-
-    selectedItemColor: const Color(0xFF0B1F3A),
-
-    unselectedItemColor: Colors.grey,
-
-    iconSize: 28,
-
-    selectedFontSize: 13,
-
-    unselectedFontSize: 12,
-
-    onTap: (index) {
-      setState(() {
-        currentIndex = index;
-      });
-    },
-
-    items: const [
-
-      BottomNavigationBarItem(
-        icon: Icon(Icons.home),
-        label: "Home",
+      body: IndexedStack(
+        index: currentIndex,
+        children: screens,
       ),
 
-      BottomNavigationBarItem(
-        icon: Icon(Icons.local_hospital),
-        label: "Clinics",
-      ),
+      bottomNavigationBar: Container(
+        height: 75,
+        color: const Color(0xFF0B1F3A),
 
-      BottomNavigationBarItem(
-        icon: Icon(Icons.calendar_month),
-        label: "Appointment",
-      ),
+        child: Row(
+          children: [
+            _buildNavigationItem(
+              index: 0,
+              icon: Icons.home,
+              label: "Home",
+            ),
 
-      BottomNavigationBarItem(
-        icon: Icon(Icons.person),
-        label: "Profile",
-      ),
+            _buildNavigationItem(
+              index: 1,
+              icon: Icons.local_hospital,
+              label: "Clinics",
+            ),
 
-       ],
+            _buildNavigationItem(
+              index: 2,
+              icon: Icons.calendar_month,
+              label: "My Appointments",
+            ),
+
+            _buildNavigationItem(
+              index: 3,
+              icon: Icons.person,
+              label: "Profile",
+            ),
+          ],
+        ),
       ),
-     ),
     );
   }
-} 
+
+  Widget _buildNavigationItem({
+    required int index,
+    required IconData icon,
+    required String label,
+  }) {
+    final bool selected = currentIndex == index;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            currentIndex = index;
+          });
+        },
+
+        child: Container(
+          height: 75,
+          color: selected
+              ? const Color(0xFF1565C0)
+              : const Color(0xFF0B1F3A),
+
+          child: Column(
+            mainAxisAlignment:
+                MainAxisAlignment.center,
+
+            children: [
+              Icon(
+                icon,
+                size: 25,
+                color: Colors.white,
+              ),
+
+              const SizedBox(height: 4),
+
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

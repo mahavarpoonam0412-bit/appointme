@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'clinics_screen.dart';
-import 'live_queue_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-class PatientHomeScreen extends StatefulWidget {
 
+import 'clinics_screen.dart';
+import 'live_queue_screen.dart';
+import 'book_appointment_screen.dart';
+
+class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
 
   @override
@@ -13,25 +15,33 @@ class PatientHomeScreen extends StatefulWidget {
 
 class _PatientHomeScreenState extends State<PatientHomeScreen> {
   String patientName = "Patient";
+  String searchText = "";
+
   @override
-void initState() {
-  super.initState();
-  getPatientName();
-}
-
-Future<void> getPatientName() async {
-  User? user = FirebaseAuth.instance.currentUser;
-
-  if (user != null) {
-    var data = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(user.uid)
-        .get();
-
-    setState(() {
-patientName = data["name"].toString();    });
+  void initState() {
+    super.initState();
+    getPatientName();
   }
-}
+
+  Future<void> getPatientName() async {
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      final data = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .get();
+
+      if (data.exists && data.data() != null) {
+        setState(() {
+          patientName =
+              data.data()!["name"]?.toString() ?? "Patient";
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
@@ -50,9 +60,9 @@ patientName = data["name"].toString();    });
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
-              Text("Hello $patientName 👋",
-                style: TextStyle(
+              Text(
+                "Hello $patientName 👋",
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -70,11 +80,26 @@ patientName = data["name"].toString();    });
 
               const SizedBox(height: 20),
 
-              // Search Clinic
+              // Search
               TextField(
+                onChanged: (value) {
+                  setState(() {
+                    searchText = value.trim().toLowerCase();
+                  });
+                },
                 decoration: InputDecoration(
                   hintText: "Search Clinic...",
                   prefixIcon: const Icon(Icons.search),
+                  suffixIcon: searchText.isNotEmpty
+                      ? IconButton(
+                          onPressed: () {
+                            setState(() {
+                              searchText = "";
+                            });
+                          },
+                          icon: const Icon(Icons.clear),
+                        )
+                      : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
@@ -95,30 +120,158 @@ patientName = data["name"].toString();    });
 
               const SizedBox(height: 10),
 
-              // Clinic Card
-              Card(
-                elevation: 3,
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.local_hospital,
-                    color: Colors.blue,
-                    size: 40,
-                  ),
-                  title: const Text("ABC Clinic"),
-                  subtitle: const Text(
-                    "Dahod\nAvailable Today",
-                  ),
-                  trailing: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(context,
-    MaterialPageRoute(
-      builder: (context) => const ClinicsScreen(),
-    ),
-  );
-},
-                    child: const Text("Book"),
-                  ),
-                ),
+              // Firebase Clinics
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection("clinics")
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text(
+                        "Unable to load clinics.",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    );
+                  }
+
+                  if (!snapshot.hasData ||
+                      snapshot.data!.docs.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text(
+                        "No clinics available.",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    );
+                  }
+
+                  // Search filter
+                  final clinics = snapshot.data!.docs.where((clinic) {
+                    final data =
+                        clinic.data() as Map<String, dynamic>;
+
+                    final clinicName =
+                        data["clinicName"]
+                                ?.toString()
+                                .toLowerCase() ??
+                            "";
+
+                    final ownerName =
+                        data["ownerName"]
+                                ?.toString()
+                                .toLowerCase() ??
+                            "";
+
+                    final address =
+                        data["address"]
+                                ?.toString()
+                                .toLowerCase() ??
+                            "";
+
+                    if (searchText.isEmpty) {
+                      return true;
+                    }
+
+                    return clinicName.contains(searchText) ||
+                        ownerName.contains(searchText) ||
+                        address.contains(searchText);
+                  }).toList();
+
+                  if (clinics.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Center(
+                        child: Text(
+                          "No clinic found.",
+                          style: TextStyle(
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    children: clinics.map((clinic) {
+                      final data =
+                          clinic.data() as Map<String, dynamic>;
+
+                      final clinicName =
+                          data["clinicName"]?.toString() ??
+                              "Clinic";
+
+                      final ownerName =
+                          data["ownerName"]?.toString() ??
+                              "Doctor";
+
+                      final address =
+                          data["address"]?.toString() ??
+                              "Address not available";
+
+                      return Card(
+                        elevation: 3,
+                        margin:
+                            const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          contentPadding:
+                              const EdgeInsets.all(12),
+
+                          leading: const Icon(
+                            Icons.local_hospital,
+                            color: Colors.blue,
+                            size: 40,
+                          ),
+
+                          title: Text(
+                            clinicName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+
+                          subtitle: Text(
+                            "$ownerName\n"
+                            "$address\n"
+                            "Available Today",
+                          ),
+
+                          isThreeLine: true,
+
+                          // Selected clinic direct open
+                          trailing: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      BookAppointmentScreen(
+                                    clinicId: clinic.id,
+                                    clinicName: clinicName,
+                                    doctorName: ownerName,
+                                    address: address,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: const Text("Book"),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
               ),
 
               const SizedBox(height: 25),
@@ -141,9 +294,12 @@ patientName = data["name"].toString();    });
                     color: Colors.green,
                     size: 40,
                   ),
-                  title: const Text("Token Number: 18"),
+                  title: const Text(
+                    "Token Number: 18",
+                  ),
                   subtitle: const Text(
-                    "Currently Serving: 14\n4 Patients Before You",
+                    "Currently Serving: 14\n"
+                    "4 Patients Before You",
                   ),
                 ),
               ),
@@ -152,19 +308,23 @@ patientName = data["name"].toString();    });
 
               Row(
                 children: [
-
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => const ClinicsScreen(),
-    ),
-  );
-},
-                      icon: const Icon(Icons.calendar_month),
-                      label: const Text("Book Appointment"),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const ClinicsScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.calendar_month,
+                      ),
+                      label: const Text(
+                        "Book Appointment",
+                      ),
                     ),
                   ),
 
@@ -173,50 +333,25 @@ patientName = data["name"].toString();    });
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => const LiveQueueScreen(),
-    ),
-  );
-},
-                      icon: const Icon(Icons.queue),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const LiveQueueScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.queue,
+                      ),
                       label: const Text("Live Queue"),
                     ),
                   ),
-
                 ],
               ),
             ],
           ),
         ),
-      ),
-
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        items: const [
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "Home",
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.local_hospital),
-            label: "Clinics",
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month),
-            label: "My Appointments",
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: "Profile",
-          ),
-
-        ],
       ),
     );
   }
