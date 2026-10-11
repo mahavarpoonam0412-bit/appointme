@@ -19,12 +19,10 @@ class BookAppointmentScreen extends StatefulWidget {
   });
 
   @override
-  State<BookAppointmentScreen> createState() =>
-      _BookAppointmentScreenState();
+  State<BookAppointmentScreen> createState() => _BookAppointmentScreenState();
 }
 
-class _BookAppointmentScreenState
-    extends State<BookAppointmentScreen> {
+class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   bool isLoading = false;
 
   Future<void> confirmAppointment() async {
@@ -71,47 +69,37 @@ class _BookAppointmentScreenState
       // Token generate karna
       int generatedToken = 1;
 
-      await FirebaseFirestore.instance.runTransaction(
-        (transaction) async {
-          DocumentSnapshot snapshot =
-              await transaction.get(clinicRef);
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot snapshot = await transaction.get(clinicRef);
 
-          if (!snapshot.exists) {
-            throw Exception("Clinic not found.");
-          }
+        if (!snapshot.exists) {
+          throw Exception("Clinic not found.");
+        }
 
-          final data =
-              snapshot.data() as Map<String, dynamic>;
+        final data = snapshot.data() as Map<String, dynamic>;
 
-          String lastTokenDate =
-              data["lastTokenDate"]?.toString() ?? "";
+        String lastTokenDate = data["lastTokenDate"]?.toString() ?? "";
 
-          int lastToken = 0;
+        int lastToken = 0;
 
-          if (data["lastToken"] is int) {
-            lastToken = data["lastToken"];
-          }
+        if (data["lastToken"] is int) {
+          lastToken = data["lastToken"];
+        }
 
-          if (lastTokenDate == today) {
-            generatedToken = lastToken + 1;
-          } else {
-            generatedToken = 1;
-          }
+        if (lastTokenDate == today) {
+          generatedToken = lastToken + 1;
+        } else {
+          generatedToken = 1;
+        }
 
-          transaction.update(
-            clinicRef,
-            {
-              "lastTokenDate": today,
-              "lastToken": generatedToken,
-            },
-          );
-        },
-      );
+        transaction.update(clinicRef, {
+          "lastTokenDate": today,
+          "lastToken": generatedToken,
+        });
+      });
 
       // Appointment Firebase me save karna
-      await FirebaseFirestore.instance
-          .collection("appointments")
-          .add({
+      await FirebaseFirestore.instance.collection("appointments").add({
         "patientId": user.uid,
         "patientName": patientName,
 
@@ -153,13 +141,8 @@ class _BookAppointmentScreenState
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Error: ${e.toString()}",
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
     } finally {
       if (mounted) {
         setState(() {
@@ -185,9 +168,7 @@ class _BookAppointmentScreenState
         foregroundColor: Colors.white,
         title: const Text(
           "Book Appointment",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
 
@@ -199,10 +180,7 @@ class _BookAppointmentScreenState
           children: [
             const Text(
               "Clinic Details",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 15),
@@ -214,16 +192,14 @@ class _BookAppointmentScreenState
                 padding: const EdgeInsets.all(16),
 
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
 
                   children: [
                     Row(
                       children: [
                         const CircleAvatar(
                           radius: 28,
-                          backgroundColor:
-                              Color(0xFFE3F2FD),
+                          backgroundColor: Color(0xFFE3F2FD),
 
                           child: Icon(
                             Icons.local_hospital,
@@ -239,8 +215,7 @@ class _BookAppointmentScreenState
                             widget.clinicName,
                             style: const TextStyle(
                               fontSize: 20,
-                              fontWeight:
-                                  FontWeight.bold,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -251,18 +226,14 @@ class _BookAppointmentScreenState
 
                     Text(
                       "👨‍⚕️ ${widget.doctorName}",
-                      style: const TextStyle(
-                        fontSize: 16,
-                      ),
+                      style: const TextStyle(fontSize: 16),
                     ),
 
                     const SizedBox(height: 8),
 
                     Text(
                       "📍 ${widget.address}",
-                      style: const TextStyle(
-                        fontSize: 16,
-                      ),
+                      style: const TextStyle(fontSize: 16),
                     ),
                   ],
                 ),
@@ -273,10 +244,7 @@ class _BookAppointmentScreenState
 
             const Text(
               "Appointment Details",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 15),
@@ -293,13 +261,9 @@ class _BookAppointmentScreenState
                         color: Colors.blue,
                       ),
 
-                      title: const Text(
-                        "Appointment Date",
-                      ),
+                      title: const Text("Appointment Date"),
 
-                      subtitle: Text(
-                        "Today - $today",
-                      ),
+                      subtitle: Text("Today - $today"),
                     ),
 
                     const Divider(),
@@ -328,33 +292,24 @@ class _BookAppointmentScreenState
               height: 52,
 
               child: ElevatedButton.icon(
-                onPressed: isLoading
-                    ? null
-                    : confirmAppointment,
+                onPressed: isLoading ? null : confirmAppointment,
 
                 icon: isLoading
                     ? const SizedBox(
                         width: 22,
                         height: 22,
 
-                        child:
-                            CircularProgressIndicator(
+                        child: CircularProgressIndicator(
                           color: Colors.white,
                           strokeWidth: 2,
                         ),
                       )
-                    : const Icon(
-                        Icons.check_circle,
-                      ),
+                    : const Icon(Icons.check_circle),
 
                 label: Text(
-                  isLoading
-                      ? "Confirming..."
-                      : "Confirm Appointment",
+                  isLoading ? "Confirming..." : "Confirm Appointment",
 
-                  style: const TextStyle(
-                    fontSize: 17,
-                  ),
+                  style: const TextStyle(fontSize: 17),
                 ),
               ),
             ),
