@@ -1,7 +1,9 @@
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../token_service.dart';
 import 'token_screen.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
@@ -19,7 +21,8 @@ class BookAppointmentScreen extends StatefulWidget {
   });
 
   @override
-  State<BookAppointmentScreen> createState() => _BookAppointmentScreenState();
+  State<BookAppointmentScreen> createState() =>
+      _BookAppointmentScreenState();
 }
 
 class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
@@ -33,92 +36,45 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     });
 
     try {
-      User? user = FirebaseAuth.instance.currentUser;
+      final user = FirebaseAuth.instance.currentUser;
 
       if (user == null) {
-        throw Exception("Patient is not logged in.");
+        throw Exception('Patient is not logged in.');
       }
 
-      // Patient ka naam Firebase se lena
-      DocumentSnapshot userData = await FirebaseFirestore.instance
-          .collection("users")
+      final userData = await FirebaseFirestore.instance
+          .collection('users')
           .doc(user.uid)
           .get();
 
-      String patientName = "Patient";
+      String patientName = 'Patient';
 
       if (userData.exists) {
-        final data = userData.data() as Map<String, dynamic>?;
-
-        if (data != null) {
-          patientName = data["name"]?.toString() ?? "Patient";
-        }
+        final data = userData.data();
+        patientName = data?['name']?.toString() ?? 'Patient';
       }
 
-      // Selected clinic ka direct Firebase document
-      DocumentReference clinicRef = FirebaseFirestore.instance
-          .collection("clinics")
-          .doc(widget.clinicId);
-
-      // Aaj ki date
-      DateTime now = DateTime.now();
-
-      String today =
-          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-
-      // Token generate karna
-      int generatedToken = 1;
-
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        DocumentSnapshot snapshot = await transaction.get(clinicRef);
-
-        if (!snapshot.exists) {
-          throw Exception("Clinic not found.");
-        }
-
-        final data = snapshot.data() as Map<String, dynamic>;
-
-        String lastTokenDate = data["lastTokenDate"]?.toString() ?? "";
-
-        int lastToken = 0;
-
-        if (data["lastToken"] is int) {
-          lastToken = data["lastToken"];
-        }
-
-        if (lastTokenDate == today) {
-          generatedToken = lastToken + 1;
-        } else {
-          generatedToken = 1;
-        }
-
-        transaction.update(clinicRef, {
-          "lastTokenDate": today,
-          "lastToken": generatedToken,
-        });
-      });
-
-      // Appointment Firebase me save karna
-      await FirebaseFirestore.instance.collection("appointments").add({
-        "patientId": user.uid,
-        "patientName": patientName,
-
-        // Actual Firebase clinic ID
-        "clinicId": widget.clinicId,
-
-        "clinicName": widget.clinicName,
-        "doctorName": widget.doctorName,
-        "address": widget.address,
-
-        "token": generatedToken,
-        "appointmentDate": today,
-        "status": "waiting",
-        "createdAt": FieldValue.serverTimestamp(),
-      });
+      // Common token service se token aur appointment create karna.
+      final generatedToken = await TokenService.createAppointment(
+        clinicId: widget.clinicId,
+        patientName: patientName,
+        clinicName: widget.clinicName,
+        doctorName: widget.doctorName,
+        address: widget.address,
+        bookingType: 'online',
+        patientId: user.uid,
+      );
 
       if (!mounted) return;
 
-      // Token screen open
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Appointment confirmed. Token $generatedToken generated.',
+          ),
+        ),
+      );
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -126,23 +82,16 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
             tokenNumber: generatedToken,
             clinicName: widget.clinicName,
             doctorName: widget.doctorName,
-            appointmentDate: today,
-          ),
-        ),
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Appointment confirmed. Token $generatedToken generated.",
+            appointmentDate: TokenService.todayKey(),
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -154,62 +103,51 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    DateTime now = DateTime.now();
+    final now = DateTime.now();
 
-    String today =
-        "${now.day.toString().padLeft(2, '0')} "
-        "${_monthName(now.month)} ${now.year}";
+    final today =
+        '${now.day.toString().padLeft(2, '0')} '
+        '${_monthName(now.month)} ${now.year}';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
-
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B1F3A),
         foregroundColor: Colors.white,
         title: const Text(
-          "Book Appointment",
+          'Book Appointment',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Clinic Details",
+              'Clinic Details',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-
             const SizedBox(height: 15),
-
             Card(
               elevation: 3,
-
               child: Padding(
                 padding: const EdgeInsets.all(16),
-
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-
                   children: [
                     Row(
                       children: [
                         const CircleAvatar(
                           radius: 28,
                           backgroundColor: Color(0xFFE3F2FD),
-
                           child: Icon(
                             Icons.local_hospital,
                             color: Color(0xFF1565C0),
                             size: 30,
                           ),
                         ),
-
                         const SizedBox(width: 15),
-
                         Expanded(
                           child: Text(
                             widget.clinicName,
@@ -221,38 +159,29 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 15),
-
                     Text(
-                      "👨‍⚕️ ${widget.doctorName}",
+                      '👨‍⚕️ ${widget.doctorName}',
                       style: const TextStyle(fontSize: 16),
                     ),
-
                     const SizedBox(height: 8),
-
                     Text(
-                      "📍 ${widget.address}",
+                      '📍 ${widget.address}',
                       style: const TextStyle(fontSize: 16),
                     ),
                   ],
                 ),
               ),
             ),
-
             const SizedBox(height: 25),
-
             const Text(
-              "Appointment Details",
+              'Appointment Details',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-
             const SizedBox(height: 15),
-
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-
                 child: Column(
                   children: [
                     ListTile(
@@ -260,55 +189,42 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                         Icons.calendar_today,
                         color: Colors.blue,
                       ),
-
-                      title: const Text("Appointment Date"),
-
-                      subtitle: Text("Today - $today"),
+                      title: const Text('Appointment Date'),
+                      subtitle: Text('Today - $today'),
                     ),
-
                     const Divider(),
-
                     const ListTile(
                       leading: Icon(
                         Icons.confirmation_number,
                         color: Colors.green,
                       ),
-
-                      title: Text("Token"),
-
+                      title: Text('Token'),
                       subtitle: Text(
-                        "Token will be generated after confirmation",
+                        'Token will be generated after confirmation',
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-
             const SizedBox(height: 30),
-
             SizedBox(
               width: double.infinity,
               height: 52,
-
               child: ElevatedButton.icon(
                 onPressed: isLoading ? null : confirmAppointment,
-
                 icon: isLoading
                     ? const SizedBox(
                         width: 22,
                         height: 22,
-
                         child: CircularProgressIndicator(
                           color: Colors.white,
                           strokeWidth: 2,
                         ),
                       )
                     : const Icon(Icons.check_circle),
-
                 label: Text(
-                  isLoading ? "Confirming..." : "Confirm Appointment",
-
+                  isLoading ? 'Confirming...' : 'Confirm Appointment',
                   style: const TextStyle(fontSize: 17),
                 ),
               ),
@@ -321,18 +237,18 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   String _monthName(int month) {
     const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
 
     return months[month - 1];
