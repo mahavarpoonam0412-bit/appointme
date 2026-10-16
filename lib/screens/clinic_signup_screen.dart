@@ -19,6 +19,8 @@ class _ClinicSignupScreenState extends State<ClinicSignupScreen> {
   final addressController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
+  final qualificationController = TextEditingController();
+  final specialityController = TextEditingController();
 
   bool hidePassword = true;
   bool hideConfirmPassword = true;
@@ -32,6 +34,8 @@ class _ClinicSignupScreenState extends State<ClinicSignupScreen> {
     addressController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
+    qualificationController.dispose();
+    specialityController.dispose();
     super.dispose();
   }
 
@@ -52,6 +56,8 @@ class _ClinicSignupScreenState extends State<ClinicSignupScreen> {
           .set({
         "clinicName": clinicNameController.text.trim(),
         "ownerName": ownerNameController.text.trim(),
+        "qualification": qualificationController.text.trim(),
+        "speciality": specialityController.text.trim(),
         "mobile": mobileController.text.trim(),
         "email": emailController.text.trim(),
         "address": addressController.text.trim(),
@@ -164,6 +170,48 @@ class _ClinicSignupScreenState extends State<ClinicSignupScreen> {
                     return null;
                   },
                 ),
+
+                
+                
+const SizedBox(height: 18),
+
+TextFormField(
+  controller: qualificationController,
+  decoration: InputDecoration(
+    labelText: 'Doctor Qualification',
+    hintText: 'e.g. MBBS, MD',
+    prefixIcon: const Icon(Icons.school),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(15),
+    ),
+  ),
+  validator: (value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please enter doctor qualification';
+    }
+    return null;
+  },
+),
+
+const SizedBox(height: 18),
+
+TextFormField(
+  controller: specialityController,
+  decoration: InputDecoration(
+    labelText: 'Doctor Speciality',
+    hintText: 'e.g. Cardiologist, Dentist',
+    prefixIcon: const Icon(Icons.medical_services),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(15),
+    ),
+  ),
+  validator: (value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please enter doctor speciality';
+    }
+    return null;
+  },
+),
 
                 const SizedBox(height: 18),
 

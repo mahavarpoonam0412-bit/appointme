@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'clinic_home_screen.dart';
 import 'forgot_password_screen.dart';
@@ -28,7 +29,7 @@ class _ClinicSigninScreenState extends State<ClinicSigninScreen> {
   }
 
   Future<void> signIn() async {
-    if (!_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate() || isLoading) {
       return;
     }
 
@@ -40,10 +41,43 @@ class _ClinicSigninScreenState extends State<ClinicSigninScreen> {
       final email = emailMobileController.text.trim();
       final password = passwordController.text.trim();
 
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      final user = credential.user;
+
+      if (user == null) {
+        throw Exception('Login failed. Please try again.');
+      }
+
+      // Check whether this account belongs to a clinic.
+      final clinicDoc = await FirebaseFirestore.instance
+          .collection('clinics')
+          .doc(user.uid)
+          .get();
+
+      final role =
+          clinicDoc.data()?['role']?.toString().toLowerCase().trim();
+          debugPrint('Logged-in UID: ${user.uid}');
+          debugPrint('Clinic document exists: ${clinicDoc.exists}');
+          debugPrint('Clinic role: $role');
+      if (!clinicDoc.exists || role != 'clinic') {
+        await FirebaseAuth.instance.signOut();
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'This is not a Clinic account. Please use the correct login.',
+            ),
+          ),
+        );
+        return;
+      }
 
       if (!mounted) return;
 
@@ -54,17 +88,16 @@ class _ClinicSigninScreenState extends State<ClinicSigninScreen> {
         ),
       );
     } on FirebaseAuthException catch (e) {
-      String message = "Login failed";
+      String message = 'Login failed. Please try again.';
 
-      if (e.code == 'user-not-found') {
-        message = "No clinic account found with this email.";
-      } else if (e.code == 'wrong-password' ||
-          e.code == 'invalid-credential') {
-        message = "Incorrect email or password.";
+      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+        message = 'Email or password is incorrect.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Incorrect email or password.';
       } else if (e.code == 'invalid-email') {
-        message = "Please enter a valid email address.";
+        message = 'Please enter a valid email address.';
       } else if (e.code == 'too-many-requests') {
-        message = "Too many attempts. Please try again later.";
+        message = 'Too many attempts. Please try again later.';
       }
 
       if (!mounted) return;
@@ -76,8 +109,10 @@ class _ClinicSigninScreenState extends State<ClinicSigninScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Something went wrong. Please try again."),
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
         ),
       );
     } finally {
@@ -106,31 +141,26 @@ class _ClinicSigninScreenState extends State<ClinicSigninScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 30),
-
                 const Icon(
                   Icons.local_hospital,
                   size: 80,
                   color: Color(0xFF1565C0),
                 ),
-
                 const SizedBox(height: 20),
-
                 const Text(
-                  "Welcome, Clinic!",
+                  'Welcome, Clinic!',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1565C0),
                   ),
                 ),
-
                 const SizedBox(height: 40),
-
                 TextFormField(
                   controller: emailMobileController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    labelText: "Email",
+                    labelText: 'Email',
                     prefixIcon: const Icon(Icons.email),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15),
@@ -138,24 +168,22 @@ class _ClinicSigninScreenState extends State<ClinicSigninScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return "Please enter email";
+                      return 'Please enter email';
                     }
 
                     if (!value.contains('@')) {
-                      return "Please enter a valid email";
+                      return 'Please enter a valid email';
                     }
 
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 20),
-
                 TextFormField(
                   controller: passwordController,
                   obscureText: hidePassword,
                   decoration: InputDecoration(
-                    labelText: "Password",
+                    labelText: 'Password',
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -175,19 +203,17 @@ class _ClinicSigninScreenState extends State<ClinicSigninScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return "Please enter password";
+                      return 'Please enter password';
                     }
 
                     if (value.length < 6) {
-                      return "Password must be 6 characters";
+                      return 'Password must be 6 characters';
                     }
 
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 30),
-
                 SizedBox(
                   width: double.infinity,
                   height: 58,
@@ -205,7 +231,7 @@ class _ClinicSigninScreenState extends State<ClinicSigninScreen> {
                             color: Colors.white,
                           )
                         : const Text(
-                            "Sign In",
+                            'Sign In',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -213,9 +239,7 @@ class _ClinicSigninScreenState extends State<ClinicSigninScreen> {
                           ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
                 TextButton(
                   onPressed: () {
                     Navigator.push(
@@ -227,7 +251,7 @@ class _ClinicSigninScreenState extends State<ClinicSigninScreen> {
                     );
                   },
                   child: const Text(
-                    "Forgot Password?",
+                    'Forgot Password?',
                     style: TextStyle(
                       color: Color(0xFF1565C0),
                     ),

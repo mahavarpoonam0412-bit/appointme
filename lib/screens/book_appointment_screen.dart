@@ -86,13 +86,20 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           ),
         ),
       );
-    } catch (e) {
-      if (!mounted) return;
+    }
+catch (e) {
+  if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    } finally {
+  String message = e.toString();
+  message = message.replaceFirst('Exception: ', '');
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+    ),
+  );
+}
+ finally {
       if (mounted) {
         setState(() {
           isLoading = false;

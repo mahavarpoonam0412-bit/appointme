@@ -130,6 +130,14 @@ class _ClinicsScreenState extends State<ClinicsScreen> {
                           (data["ownerName"] ?? "")
                               .toString();
 
+                      final qualification =
+    (data["qualification"] ?? "Qualification not added").toString();
+
+final speciality =
+    (data["speciality"] ?? "Speciality not added").toString();
+debugPrint("Clinic Data: $data");
+debugPrint("Qualification: $qualification");
+debugPrint("Speciality: $speciality");
                       final address =
                           (data["address"] ?? "Address not available")
                               .toString();
@@ -179,12 +187,33 @@ class _ClinicsScreenState extends State<ClinicsScreen> {
                                         const SizedBox(height: 5),
 
                                         Text(
-                                          ownerName,
-                                          style:
-                                              const TextStyle(
-                                            fontSize: 15,
-                                          ),
-                                        ),
+  ownerName,
+  style: const TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w500,
+  ),
+),
+
+const SizedBox(height: 5),
+
+Text(
+  "Qualification: $qualification",
+  style: const TextStyle(
+    fontSize: 13,
+    color: Colors.grey,
+  ),
+),
+
+const SizedBox(height: 4),
+
+Text(
+  "Speciality: $speciality",
+  style: const TextStyle(
+    fontSize: 13,
+    color: Color(0xFF1565C0),
+    fontWeight: FontWeight.w500,
+  ),
+),
                                       ],
                                     ),
                                   ),

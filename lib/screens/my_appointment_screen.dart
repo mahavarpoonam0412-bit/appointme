@@ -1,557 +1,324 @@
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class MyAppointmentScreen extends StatefulWidget {
+class MyAppointmentScreen extends StatelessWidget {
   const MyAppointmentScreen({super.key});
 
-  @override
-  State<MyAppointmentScreen> createState() =>
-      _MyAppointmentScreenState();
-}
-
-class _MyAppointmentScreenState
-    extends State<MyAppointmentScreen> {
-  bool isLoading = true;
-
-  Map<String, dynamic>? currentAppointment;
-  int currentServing = 0;
-  int patientsBeforeYou = 0;
-
-  List<Map<String, dynamic>> history = [];
-
-  @override
-  void initState() {
-    super.initState();
-    loadAppointments();
-  }
-
   int getInt(dynamic value) {
-    if (value is int) return value;
     if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? "") ?? 0;
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   String todayDate() {
     final now = DateTime.now();
-
-    return "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
   String formatDate(String date) {
-    try {
-      final parts = date.split("-");
+    final parts = date.split('-');
+    if (parts.length != 3) return date;
 
-      if (parts.length == 3) {
-        return "${parts[2]} ${monthName(int.parse(parts[1]))} ${parts[0]}";
-      }
-    } catch (_) {}
-
-    return date;
-  }
-
-  String monthName(int month) {
     const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
+      'January', 'February', 'March', 'April',
+      'May', 'June', 'July', 'August',
+      'September', 'October', 'November', 'December'
     ];
 
-    if (month < 1 || month > 12) {
-      return "";
-    }
+    final month = int.tryParse(parts[1]) ?? 0;
+    if (month < 1 || month > 12) return date;
 
-    return months[month - 1];
+    return '${parts[2]} ${months[month - 1]} ${parts[0]}';
   }
 
-  DateTime getCreatedAt(Map<String, dynamic> appointment) {
-    final createdAt = appointment["createdAt"];
-
-    if (createdAt is Timestamp) {
-      return createdAt.toDate();
+  String statusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+      case 'served':
+        return 'Completed';
+      case 'waiting':
+        return 'Waiting';
+      default:
+        return status.isEmpty ? 'Unknown' : status;
     }
-
-    return DateTime(2000);
   }
 
-  Future<void> loadAppointments() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-
-      if (user == null) {
-        setState(() {
-          isLoading = false;
-        });
-        return;
-      }
-
-      final today = todayDate();
-
-      final snapshot = await FirebaseFirestore.instance
-          .collection("appointments")
-          .where(
-            "patientId",
-            isEqualTo: user.uid,
-          )
-          .get();
-
-      List<Map<String, dynamic>> allAppointments = [];
-
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-
-        allAppointments.add({
-          ...data,
-          "documentId": doc.id,
-        });
-      }
-
-      // --------------------------------------------------
-      // TODAY KI WAITING APPOINTMENTS
-      // --------------------------------------------------
-
-      List<Map<String, dynamic>> waitingAppointments =
-          allAppointments.where((appointment) {
-        final appointmentDate =
-            appointment["appointmentDate"]?.toString() ?? "";
-
-        final status =
-            appointment["status"]?.toString().toLowerCase() ?? "";
-
-        return appointmentDate == today &&
-            status == "waiting";
-      }).toList();
-
-      // IMPORTANT:
-      // Highest token nahi,
-      // LAST BOOKED APPOINTMENT select hoga.
-      waitingAppointments.sort((a, b) {
-        return getCreatedAt(b).compareTo(
-          getCreatedAt(a),
-        );
-      });
-
-      Map<String, dynamic>? activeAppointment;
-
-      if (waitingAppointments.isNotEmpty) {
-        activeAppointment = waitingAppointments.first;
-      }
-
-      int servingToken = 0;
-      int beforeYou = 0;
-
-      // --------------------------------------------------
-      // SELECTED / LATEST APPOINTMENT KA QUEUE
-      // --------------------------------------------------
-
-      if (activeAppointment != null) {
-        final clinicId =
-            activeAppointment["clinicId"]?.toString() ?? "";
-
-        final myToken =
-            getInt(activeAppointment["token"]);
-
-        if (clinicId.isNotEmpty) {
-          // Clinic ka current token
-          final clinicDoc = await FirebaseFirestore.instance
-              .collection("clinics")
-              .doc(clinicId)
-              .get();
-
-          if (clinicDoc.exists) {
-            final clinicData =
-                clinicDoc.data() ?? {};
-
-            servingToken =
-                getInt(clinicData["currentToken"]);
-          }
-
-          // Agar currentToken available nahi hai
-          // to completed/served appointments se calculate
-          if (servingToken == 0) {
-            final clinicAppointments =
-                await FirebaseFirestore.instance
-                    .collection("appointments")
-                    .where(
-                      "clinicId",
-                      isEqualTo: clinicId,
-                    )
-                    .get();
-
-            for (final doc in clinicAppointments.docs) {
-              final data = doc.data();
-
-              if (data["appointmentDate"]?.toString() !=
-                  today) {
-                continue;
-              }
-
-              final status =
-                  data["status"]?.toString().toLowerCase() ?? "";
-
-              if (status == "completed" ||
-                  status == "served") {
-                final token =
-                    getInt(data["token"]);
-
-                if (token > servingToken) {
-                  servingToken = token;
-                }
-              }
-            }
-          }
-
-          // Is selected clinic ke kitne patients
-          // mere token se pehle hain
-          final clinicAppointments =
-              await FirebaseFirestore.instance
-                  .collection("appointments")
-                  .where(
-                    "clinicId",
-                    isEqualTo: clinicId,
-                  )
-                  .get();
-
-          for (final doc in clinicAppointments.docs) {
-            final data = doc.data();
-
-            if (data["appointmentDate"]?.toString() !=
-                today) {
-              continue;
-            }
-
-            final status =
-                data["status"]?.toString().toLowerCase() ?? "";
-
-            final token =
-                getInt(data["token"]);
-
-            if (status == "waiting" &&
-                token > servingToken &&
-                token < myToken) {
-              beforeYou++;
-            }
-          }
-        }
-      }
-
-      // --------------------------------------------------
-      // PREVIOUS HISTORY
-      // --------------------------------------------------
-
-      List<Map<String, dynamic>> previousAppointments =
-          allAppointments.where((appointment) {
-        final appointmentDate =
-            appointment["appointmentDate"]?.toString() ?? "";
-
-        final status =
-            appointment["status"]?.toString().toLowerCase() ?? "";
-
-        return appointmentDate != today ||
-            status == "completed" ||
-            status == "served";
-      }).toList();
-
-      previousAppointments.sort((a, b) {
-        return getCreatedAt(b).compareTo(
-          getCreatedAt(a),
-        );
-      });
-
-      setState(() {
-        currentAppointment = activeAppointment;
-        currentServing = servingToken;
-        patientsBeforeYou = beforeYou;
-        history = previousAppointments;
-        isLoading = false;
-      });
-    } catch (e) {
-      debugPrint("My Appointment Error: $e");
-
-      if (!mounted) return;
-
-      setState(() {
-        isLoading = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Unable to load appointments: $e",
-          ),
-        ),
-      );
+  Color statusColor(String status) {
+    final value = status.toLowerCase();
+    if (value == 'completed' || value == 'served') {
+      return Colors.green;
     }
+    if (value == 'waiting') return Colors.orange;
+    return Colors.grey;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF5F7FB),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF0B1F3A),
-          foregroundColor: Colors.white,
-          title: const Text(
-            "My Appointment",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: Text('Please log in again.')),
       );
     }
 
+    final today = todayDate();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
-
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B1F3A),
         foregroundColor: Colors.white,
         title: const Text(
-          "My Appointment",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+          'My Appointment',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            onPressed: loadAppointments,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
       ),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection('appointments')
+            .where('patientId', isEqualTo: user.uid)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text('Unable to load appointments:\n${snapshot.error}'),
+              ),
+            );
+          }
 
-      body: RefreshIndicator(
-        onRefresh: loadAppointments,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          final appointments = snapshot.data!.docs.toList();
+
+          appointments.sort((a, b) {
+            final aTime = a.data()['createdAt'];
+            final bTime = b.data()['createdAt'];
+
+            final aDate =
+                aTime is Timestamp ? aTime.toDate() : DateTime(2000);
+            final bDate =
+                bTime is Timestamp ? bTime.toDate() : DateTime(2000);
+
+            return bDate.compareTo(aDate);
+          });
+
+          final currentAppointments = appointments.where((doc) {
+            final data = doc.data();
+            return data['appointmentDate']?.toString() == today;
+          }).toList();
+
+          
+final history = appointments.where((doc) {
+  final data = doc.data();
+  final date = data['appointmentDate']?.toString() ?? '';
+  final status = data['status']?.toString().toLowerCase() ?? '';
+
+  return date != today ||
+      status == 'completed' ||
+      status == 'served';
+}).toList();
+
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
             children: [
               const Text(
-                "Current Appointment",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                'Current Appointment',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
+              const SizedBox(height: 12),
 
-              const SizedBox(height: 15),
-
-              if (currentAppointment == null)
-                Card(
-                  elevation: 3,
+              if (currentAppointments.isEmpty)
+                const Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Center(
+                    padding: EdgeInsets.all(20),
+                    child: Text('No appointment booked for today.'),
+                  ),
+                )
+              else
+                ...currentAppointments.map((appointment) {
+                  final data = appointment.data();
+                  final clinicId = data['clinicId']?.toString() ?? '';
+                  final token = getInt(data['token']);
+                  final status = data['status']?.toString() ?? '';
+
+                  return Card(
+                    elevation: 3,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
                       child: Column(
-                        children: const [
-                          Icon(
-                            Icons.event_busy,
-                            size: 50,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 10),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            "No current appointment",
+                            '🏥 ${data['clinicName'] ?? 'Clinic'}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text('👨‍⚕️ ${data['doctorName'] ?? 'Doctor'}'),
+                          const Divider(),
+                          Text(
+                            '📅 Appointment Date: ${formatDate(data['appointmentDate']?.toString() ?? '')}',
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '🎫 Token Number: $token',
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Text(
+                                'Appointment Status: ',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: statusColor(status).withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  statusText(status),
+                                  style: TextStyle(
+                                    color: statusColor(status),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Live Queue Status',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 5),
-                          Text(
-                            "Book an appointment to see it here.",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.grey,
+                          const SizedBox(height: 8),
+                          if (clinicId.isEmpty)
+                            const Text('Clinic queue is unavailable.')
+                          else
+                            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                              stream: FirebaseFirestore.instance
+                                  .collection('clinics')
+                                  .doc(clinicId)
+                                  .snapshots(),
+                              builder: (context, clinicSnapshot) {
+                                final clinicData =
+                                    clinicSnapshot.data?.data() ?? {};
+                                final serving = getInt(clinicData['currentToken']);
+
+                                return FutureBuilder<
+                                    QuerySnapshot<Map<String, dynamic>>>(
+                                  future: FirebaseFirestore.instance
+                                      .collection('appointments')
+                                      .where('clinicId', isEqualTo: clinicId)
+                                      .where('appointmentDate', isEqualTo: today)
+                                      .get(),
+                                  builder: (context, queueSnapshot) {
+                                    int beforeYou = 0;
+
+                                    if (queueSnapshot.hasData) {
+                                      for (final doc
+                                          in queueSnapshot.data!.docs) {
+                                        final other = doc.data();
+                                        final otherToken =
+                                            getInt(other['token']);
+
+                                        if (other['status'] == 'waiting' &&
+                                            otherToken > serving &&
+                                            otherToken < token) {
+                                          beforeYou++;
+                                        }
+                                      }
+                                    }
+
+                                    return ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: const Icon(
+                                        Icons.queue,
+                                        color: Colors.blue,
+                                        size: 32,
+                                      ),
+                                      title: Text(
+                                        'Currently Serving: Token $serving',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        '$beforeYou Patients Before You',
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
                             ),
-                          ),
                         ],
                       ),
                     ),
-                  ),
-                )
-              else
-                Card(
-                  elevation: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+                  );
+                }),
 
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "🏥 ${currentAppointment!["clinicName"] ?? "Clinic"}",
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        Text(
-                          "👨‍⚕️ ${currentAppointment!["doctorName"] ?? "Doctor"}",
-                          style: const TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-
-                        const Divider(),
-
-                        Text(
-                          "📅 Appointment Date: ${formatDate(currentAppointment!["appointmentDate"]?.toString() ?? "")}",
-                          style: const TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        Text(
-                          "🎫 Token Number: ${getInt(currentAppointment!["token"])}",
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              const SizedBox(height: 25),
-
+              const SizedBox(height: 12),
               const Text(
-                "Live Queue Status",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                'Previous Appointment History',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
-
-              const SizedBox(height: 15),
-
-              if (currentAppointment != null)
-                Card(
-                  elevation: 3,
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.queue,
-                      color: Colors.blue,
-                      size: 35,
-                    ),
-                    title: Text(
-                      "Currently Serving: Token $currentServing",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Text(
-                      "$patientsBeforeYou Patients Before You",
-                    ),
-                  ),
-                )
-              else
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      "No live queue available.",
-                      style: TextStyle(
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                ),
-
-              const SizedBox(height: 25),
-
-              const Text(
-                "Previous Appointment History",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 15),
+              const SizedBox(height: 12),
 
               if (history.isEmpty)
                 const Card(
                   child: Padding(
                     padding: EdgeInsets.all(16),
-                    child: Center(
-                      child: Text(
-                        "No previous appointments.",
-                        style: TextStyle(
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
+                    child: Text('No previous appointments.'),
                   ),
                 )
               else
-                Column(
-                  children: history.map((appointment) {
-                    final clinic =
-                        appointment["clinicName"]
-                                ?.toString() ??
-                            "Clinic";
+                ...history.map((appointment) {
+                  final data = appointment.data();
+                  final status = data['status']?.toString() ?? '';
 
-                    final date =
-                        appointment["appointmentDate"]
-                                ?.toString() ??
-                            "";
-
-                    final rawStatus =
-                        appointment["status"]
-                                ?.toString() ??
-                            "completed";
-
-                    final status =
-                        rawStatus.isEmpty
-                            ? "Completed"
-                            : rawStatus[0].toUpperCase() +
-                                rawStatus.substring(1);
-
-                    return Card(
-                      child: ListTile(
-                        leading:
-                            const Icon(Icons.history),
-                        title: Text(
-                          clinic,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        subtitle: Text(
-                          "$status - ${formatDate(date)}",
-                        ),
+                  return Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.history),
+                      title: Text(
+                        data['clinicName']?.toString() ?? 'Clinic',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    );
-                  }).toList(),
-                ),
+                      subtitle: Text(
+                        '${formatDate(data['appointmentDate']?.toString() ?? '')} • ${statusText(status)}',
+                      ),
+                      trailing: Icon(
+                        status.toLowerCase() == 'completed' ||
+                                status.toLowerCase() == 'served'
+                            ? Icons.check_circle
+                            : Icons.schedule,
+                        color: statusColor(status),
+                      ),
+                    ),
+                  );
+                }),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }

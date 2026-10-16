@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,345 +15,392 @@ class PatientHomeScreen extends StatefulWidget {
 }
 
 class _PatientHomeScreenState extends State<PatientHomeScreen> {
-  String patientName = "Patient";
-  String searchText = "";
-
-  @override
-  void initState() {
-    super.initState();
-    getPatientName();
-  }
-
-  Future<void> getPatientName() async {
-    User? user = FirebaseAuth.instance.currentUser;
-
-    if (user != null) {
-      final data = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .get();
-
-      if (data.exists && data.data() != null) {
-        setState(() {
-          patientName =
-              data.data()!["name"]?.toString() ?? "Patient";
-        });
-      }
-    }
-  }
+  String searchText = '';
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FB),
+    final user = FirebaseAuth.instance.currentUser;
 
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0B1F3A),
-        title: const Text(
-          "AppointMe",
-          style: TextStyle(color: Colors.white),
-        ),
-      ),
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: Text('Please login again.')),
+      );
+    }
 
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Hello $patientName 👋",
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots(),
+      builder: (context, userSnapshot) {
+        final patientName =
+            userSnapshot.data?.data()?['name']?.toString() ?? 'Patient';
 
-              const SizedBox(height: 5),
-
-              const Text(
-                "Find clinic and book your appointment",
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 15,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Search
-              TextField(
-                onChanged: (value) {
-                  setState(() {
-                    searchText = value.trim().toLowerCase();
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: "Search Clinic...",
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: searchText.isNotEmpty
-                      ? IconButton(
-                          onPressed: () {
-                            setState(() {
-                              searchText = "";
-                            });
-                          },
-                          icon: const Icon(Icons.clear),
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F7FB),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF0B1F3A),
+            foregroundColor: Colors.white,
+            title: const Text('AppointMe'),
+          ),
+          body: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Hello $patientName 👋',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-              ),
 
-              const SizedBox(height: 25),
+                  const SizedBox(height: 5),
 
-              const Text(
-                "Available Clinics",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+                  const Text(
+                    'Find clinic and book your appointment',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 15,
+                    ),
+                  ),
 
-              const SizedBox(height: 10),
+                  const SizedBox(height: 20),
 
-              // Firebase Clinics
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection("clinics")
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: CircularProgressIndicator(),
+                  TextField(
+                    onChanged: (value) {
+                      setState(() {
+                        searchText = value.trim().toLowerCase();
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search Clinic...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: searchText.isNotEmpty
+                          ? IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  searchText = '';
+                                });
+                              },
+                              icon: const Icon(Icons.clear),
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
                       ),
-                    );
-                  }
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                  ),
 
-                  if (snapshot.hasError) {
-                    return const Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text(
-                        "Unable to load clinics.",
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    );
-                  }
+                  const SizedBox(height: 25),
 
-                  if (!snapshot.hasData ||
-                      snapshot.data!.docs.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text(
-                        "No clinics available.",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    );
-                  }
+                  const Text(
+                    'Available Clinics',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
 
-                  // Search filter
-                  final clinics = snapshot.data!.docs.where((clinic) {
-                    final data =
-                        clinic.data() as Map<String, dynamic>;
+                  const SizedBox(height: 10),
 
-                    final clinicName =
-                        data["clinicName"]
-                                ?.toString()
-                                .toLowerCase() ??
-                            "";
-
-                    final ownerName =
-                        data["ownerName"]
-                                ?.toString()
-                                .toLowerCase() ??
-                            "";
-
-                    final address =
-                        data["address"]
-                                ?.toString()
-                                .toLowerCase() ??
-                            "";
-
-                    if (searchText.isEmpty) {
-                      return true;
-                    }
-
-                    return clinicName.contains(searchText) ||
-                        ownerName.contains(searchText) ||
-                        address.contains(searchText);
-                  }).toList();
-
-                  if (clinics.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Center(
-                        child: Text(
-                          "No clinic found.",
-                          style: TextStyle(
-                            color: Colors.grey,
+                  StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                    stream: FirebaseFirestore.instance
+                        .collection('clinics')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: CircularProgressIndicator(),
                           ),
-                        ),
-                      ),
-                    );
-                  }
+                        );
+                      }
 
-                  return Column(
-                    children: clinics.map((clinic) {
-                      final data =
-                          clinic.data() as Map<String, dynamic>;
-
-                      final clinicName =
-                          data["clinicName"]?.toString() ??
-                              "Clinic";
-
-                      final ownerName =
-                          data["ownerName"]?.toString() ??
-                              "Doctor";
-
-                      final address =
-                          data["address"]?.toString() ??
-                              "Address not available";
-
-                      return Card(
-                        elevation: 3,
-                        margin:
-                            const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          contentPadding:
-                              const EdgeInsets.all(12),
-
-                          leading: const Icon(
-                            Icons.local_hospital,
-                            color: Colors.blue,
-                            size: 40,
+                      if (snapshot.hasError) {
+                        return const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Text(
+                            'Unable to load clinics.',
+                            style: TextStyle(color: Colors.red),
                           ),
+                        );
+                      }
 
-                          title: Text(
-                            clinicName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
+                      if (!snapshot.hasData ||
+                          snapshot.data!.docs.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Text(
+                            'No clinics available.',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      final clinics = snapshot.data!.docs.where((clinic) {
+                        final data = clinic.data();
+
+                        final clinicName =
+                            (data['clinicName'] ?? '')
+                                .toString()
+                                .toLowerCase();
+
+                        final ownerName =
+                            (data['ownerName'] ?? '')
+                                .toString()
+                                .toLowerCase();
+
+                        final address =
+                            (data['address'] ?? '')
+                                .toString()
+                                .toLowerCase();
+
+                        final speciality =
+                            (data['speciality'] ?? '')
+                                .toString()
+                                .toLowerCase();
+
+                        return searchText.isEmpty ||
+                            clinicName.contains(searchText) ||
+                            ownerName.contains(searchText) ||
+                            address.contains(searchText) ||
+                            speciality.contains(searchText);
+                      }).toList();
+
+                      if (clinics.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Center(
+                            child: Text(
+                              'No clinic found.',
+                              style: TextStyle(color: Colors.grey),
                             ),
                           ),
+                        );
+                      }
 
-                          subtitle: Text(
-                            "$ownerName\n"
-                            "$address\n"
-                            "Available Today",
-                          ),
+                      return Column(
+                        children: clinics.map((clinic) {
+                          final data = clinic.data();
 
-                          isThreeLine: true,
+                          final clinicName =
+                              (data['clinicName'] ?? 'Clinic').toString();
 
-                          // Selected clinic direct open
-                          trailing: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      BookAppointmentScreen(
-                                    clinicId: clinic.id,
-                                    clinicName: clinicName,
-                                    doctorName: ownerName,
-                                    address: address,
+                          final ownerName =
+                              (data['ownerName'] ?? 'Doctor').toString();
+
+                          final qualification =
+                              (data['qualification'] ?? 'Not added')
+                                  .toString();
+
+                          final speciality =
+                              (data['speciality'] ?? 'Not added').toString();
+
+                          final address =
+                              (data['address'] ?? 'Address not available')
+                                  .toString();
+
+                          return Card(
+                            elevation: 3,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(
+                                        Icons.local_hospital,
+                                        color: Color(0xFF1565C0),
+                                        size: 40,
+                                      ),
+
+                                      const SizedBox(width: 12),
+
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              clinicName,
+                                              style: const TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+
+                                            const SizedBox(height: 5),
+
+                                            Text(
+                                              ownerName,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+
+                                            const SizedBox(height: 4),
+
+                                            Text(
+                                              'Qualification: $qualification',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+
+                                            const SizedBox(height: 4),
+
+                                            Text(
+                                              'Speciality: $speciality',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Color(0xFF1565C0),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+
+                                            const SizedBox(height: 4),
+
+                                            Text(
+                                              address,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+
+                                            const SizedBox(height: 4),
+
+                                            const Text(
+                                              'Available Today',
+                                              style: TextStyle(
+                                                color: Colors.green,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              );
-                            },
-                            child: const Text("Book"),
-                          ),
-                        ),
+
+                                  const SizedBox(height: 12),
+
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                BookAppointmentScreen(
+                                              clinicId: clinic.id,
+                                              clinicName: clinicName,
+                                              doctorName: ownerName,
+                                              address: address,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.calendar_month),
+                                      label: const Text('Book Appointment'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       );
-                    }).toList(),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 25),
-
-              const Text(
-                "Your Current Appointment",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              Card(
-                color: Colors.white,
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.confirmation_number,
-                    color: Colors.green,
-                    size: 40,
+                    },
                   ),
-                  title: const Text(
-                    "Token Number: 18",
-                  ),
-                  subtitle: const Text(
-                    "Currently Serving: 14\n"
-                    "4 Patients Before You",
-                  ),
-                ),
-              ),
 
-              const SizedBox(height: 25),
+                  const SizedBox(height: 25),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const ClinicsScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(
-                        Icons.calendar_month,
+                  const Text(
+                    'Your Current Appointment',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Card(
+                    color: Colors.white,
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.confirmation_number,
+                        color: Colors.green,
+                        size: 40,
                       ),
-                      label: const Text(
-                        "Book Appointment",
+                      title: const Text('Token Number: 18'),
+                      subtitle: const Text(
+                        'Currently Serving: 14\n'
+                        '4 Patients Before You',
                       ),
                     ),
                   ),
 
-                  const SizedBox(width: 10),
+                  const SizedBox(height: 25),
 
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const LiveQueueScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(
-                        Icons.queue,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const ClinicsScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.calendar_month),
+                          label: const Text('Book Appointment'),
+                        ),
                       ),
-                      label: const Text("Live Queue"),
-                    ),
+
+                      const SizedBox(width: 10),
+
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const LiveQueueScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.queue),
+                          label: const Text('Live Queue'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
