@@ -1,3 +1,4 @@
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TokenService {
@@ -80,7 +81,7 @@ class TokenService {
     });
   }
 
-  // Offline patient: AppointMe account is not required.
+  // Offline patient appointment
   static Future<int> createOfflineAppointment({
     required String clinicId,
     required String patientName,
@@ -89,16 +90,24 @@ class TokenService {
     required String address,
     String? mobile,
   }) async {
+    final cleanName = patientName.trim();
+
+    // Name is compulsory.
+    if (cleanName.isEmpty) {
+      throw Exception('Patient name is required.');
+    }
+
+    final cleanMobile = mobile?.trim() ?? '';
+
+    if (cleanMobile.isNotEmpty &&
+        !RegExp(r'^[0-9]{10}$').hasMatch(cleanMobile)) {
+      throw Exception('Enter a valid 10-digit mobile number.');
+    }
+
     final db = FirebaseFirestore.instance;
     final clinicRef = db.collection('clinics').doc(clinicId);
     final appointmentRef = db.collection('appointments').doc();
     final today = todayKey();
-
-    final cleanName = patientName.trim().isEmpty
-        ? 'Walk-in Patient'
-        : patientName.trim();
-
-    final cleanMobile = mobile?.trim() ?? '';
 
     return db.runTransaction<int>((transaction) async {
       final clinicSnapshot = await transaction.get(clinicRef);

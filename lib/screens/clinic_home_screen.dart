@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -23,7 +24,6 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
 
     final nameController = TextEditingController();
     final mobileController = TextEditingController();
-
     final formKey = GlobalKey<FormState>();
 
     final result = await showDialog<bool>(
@@ -41,11 +41,17 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
                     controller: nameController,
                     textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
-                      labelText: 'Patient Name (Optional)',
+                      labelText: 'Patient Name *',
                       hintText: 'Enter patient name',
                       prefixIcon: Icon(Icons.person),
                       border: OutlineInputBorder(),
                     ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Patient name is required';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 15),
                   TextFormField(
@@ -104,13 +110,22 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
     setState(() => isAddingOffline = true);
 
     try {
+      final patientName = nameController.text.trim();
+      final mobile = mobileController.text.trim();
+
+      // Extra safety check: name must not be empty.
+      if (patientName.isEmpty) {
+        throw Exception('Patient name is required.');
+      }
+
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         throw Exception('Please log in again.');
       }
 
       final db = FirebaseFirestore.instance;
-      final clinicSnapshot = await db.collection('clinics').doc(user.uid).get();
+      final clinicSnapshot =
+          await db.collection('clinics').doc(user.uid).get();
 
       if (!clinicSnapshot.exists) {
         throw Exception('Clinic details not found.');
@@ -120,10 +135,8 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
 
       final token = await TokenService.createOfflineAppointment(
         clinicId: user.uid,
-        patientName: nameController.text.trim().isEmpty
-            ? 'Walk-in Patient'
-            : nameController.text.trim(),
-        mobile: mobileController.text.trim(),
+        patientName: patientName,
+        mobile: mobile,
         clinicName: clinicData['clinicName']?.toString() ?? 'Clinic',
         doctorName: clinicData['ownerName']?.toString() ?? 'Doctor',
         address: clinicData['address']?.toString() ?? '',
@@ -142,7 +155,8 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Could not add patient: ${e.toString().replaceFirst('Exception: ', '')}',
+            'Could not add patient: '
+            '${e.toString().replaceFirst('Exception: ', '')}',
           ),
         ),
       );
@@ -214,7 +228,8 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Could not serve patient: ${e.toString().replaceFirst('Exception: ', '')}',
+            'Could not serve patient: '
+            '${e.toString().replaceFirst('Exception: ', '')}',
           ),
         ),
       );
@@ -228,12 +243,13 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      return const Scaffold(body: Center(child: Text('Please log in again.')));
+      return const Scaffold(
+        body: Center(child: Text('Please log in again.')),
+      );
     }
 
-    final clinicRef = FirebaseFirestore.instance
-        .collection('clinics')
-        .doc(user.uid);
+    final clinicRef =
+        FirebaseFirestore.instance.collection('clinics').doc(user.uid);
 
     final appointmentsQuery = FirebaseFirestore.instance
         .collection('appointments')
@@ -255,7 +271,9 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ClinicProfileScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const ClinicProfileScreen(),
+                ),
               );
             },
           ),
@@ -265,12 +283,14 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
         stream: clinicRef.snapshots(),
         builder: (context, clinicSnapshot) {
           final clinicData = clinicSnapshot.data?.data();
-
-          final clinicName = clinicData?['clinicName']?.toString() ?? 'Clinic';
-          final doctorName = clinicData?['ownerName']?.toString() ?? 'Doctor';
+          final clinicName =
+              clinicData?['clinicName']?.toString() ?? 'Clinic';
+          final doctorName =
+              clinicData?['ownerName']?.toString() ?? 'Doctor';
 
           final currentValue = clinicData?['currentToken'];
-          final currentToken = currentValue is num ? currentValue.toInt() : 0;
+          final currentToken =
+              currentValue is num ? currentValue.toInt() : 0;
 
           return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: appointmentsQuery.snapshots(),
@@ -332,7 +352,10 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
                     Text(
                       doctorName,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 17, color: Colors.grey),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        color: Colors.grey,
+                      ),
                     ),
                     const SizedBox(height: 20),
 
@@ -502,8 +525,8 @@ class _ClinicHomeScreenState extends State<ClinicHomeScreen> {
                       child: ElevatedButton.icon(
                         onPressed:
                             nextPatient == null || isServing || isAddingOffline
-                            ? null
-                            : () => serveNextPatient(nextPatient),
+                                ? null
+                                : () => serveNextPatient(nextPatient),
                         icon: isServing
                             ? const SizedBox(
                                 width: 20,

@@ -108,22 +108,25 @@ class MyAppointmentScreen extends StatelessWidget {
             return bDate.compareTo(aDate);
           });
 
-          final currentAppointments = appointments.where((doc) {
-            final data = doc.data();
-            return data['appointmentDate']?.toString() == today;
-          }).toList();
-
-          
-final history = appointments.where((doc) {
+         final currentAppointments = appointments.where((doc) {
   final data = doc.data();
   final date = data['appointmentDate']?.toString() ?? '';
   final status = data['status']?.toString().toLowerCase() ?? '';
 
-  return date != today ||
-      status == 'completed' ||
-      status == 'served';
+  return date == today &&
+      status != 'completed' &&
+      status != 'served';
 }).toList();
 
+          final history = appointments.where((doc) {
+            final data = doc.data();
+            final date = data['appointmentDate']?.toString() ?? '';
+            final status = data['status']?.toString().toLowerCase() ?? '';
+
+            return date != today ||
+                status == 'completed' ||
+                status == 'served';
+          }).toList();
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -147,6 +150,10 @@ final history = appointments.where((doc) {
                   final clinicId = data['clinicId']?.toString() ?? '';
                   final token = getInt(data['token']);
                   final status = data['status']?.toString() ?? '';
+                  final isCompleted = [
+                    'completed',
+                    'served',
+                  ].contains(status.toLowerCase());
 
                   return Card(
                     elevation: 3,
@@ -190,7 +197,8 @@ final history = appointments.where((doc) {
                                   vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: statusColor(status).withValues(alpha: 0.12),
+                                  color: statusColor(status)
+                                      .withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
@@ -212,42 +220,149 @@ final history = appointments.where((doc) {
                             ),
                           ),
                           const SizedBox(height: 8),
+
                           if (clinicId.isEmpty)
                             const Text('Clinic queue is unavailable.')
                           else
-                            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                            StreamBuilder<
+                                DocumentSnapshot<Map<String, dynamic>>>(
                               stream: FirebaseFirestore.instance
                                   .collection('clinics')
                                   .doc(clinicId)
                                   .snapshots(),
                               builder: (context, clinicSnapshot) {
-                                final clinicData =
-                                    clinicSnapshot.data?.data() ?? {};
-                                final serving = getInt(clinicData['currentToken']);
+                                if (clinicSnapshot.hasError) {
+                                  return const Text(
+                                    'Unable to load live queue.',
+                                  );
+                                }
 
-                                return FutureBuilder<
+                                if (!clinicSnapshot.hasData) {
+                                  return const LinearProgressIndicator();
+                                }
+
+                                final clinicData =
+                                    clinicSnapshot.data!.data() ?? {};
+                                final serving =
+                                    getInt(clinicData['currentToken']);
+
+                                return StreamBuilder<
                                     QuerySnapshot<Map<String, dynamic>>>(
-                                  future: FirebaseFirestore.instance
+                                  stream: FirebaseFirestore.instance
                                       .collection('appointments')
                                       .where('clinicId', isEqualTo: clinicId)
-                                      .where('appointmentDate', isEqualTo: today)
-                                      .get(),
+                                      .where(
+                                        'appointmentDate',
+                                        isEqualTo: today,
+                                      )
+                                      .snapshots(),
                                   builder: (context, queueSnapshot) {
-                                    int beforeYou = 0;
+                                    if (queueSnapshot.hasError) {
+                                      return const Text(
+                                        'Unable to load queue details.',
+                                      );
+                                    }
 
-                                    if (queueSnapshot.hasData) {
-                                      for (final doc
-                                          in queueSnapshot.data!.docs) {
-                                        final other = doc.data();
-                                        final otherToken =
-                                            getInt(other['token']);
+                                    if (!queueSnapshot.hasData) {
+                                      return const LinearProgressIndicator();
+                                    }
 
-                                        if (other['status'] == 'waiting' &&
-                                            otherToken > serving &&
-                                            otherToken < token) {
-                                          beforeYou++;
-                                        }
-                                      }
+                                    final queue = queueSnapshot.data!.docs;
+
+                                    final waiting = queue.where((doc) {
+                                      final otherStatus = doc
+                                          .data()['status']
+                                          ?.toString()
+                                          .toLowerCase();
+                                      return otherStatus == 'waiting';
+                                    }).toList();
+
+                                    final beforeYou = waiting.where((doc) {
+                                      final otherToken =
+                                          getInt(doc.data()['token']);
+                                      return otherToken > serving &&
+                                          otherToken < token;
+                                    }).length;
+
+                                    final isLastServedAppointment =
+                                        isCompleted && token == serving;
+                                    final noOneWaiting = waiting.isEmpty;
+
+                                    if (noOneWaiting &&
+                                        isLastServedAppointment) {
+                                      return Container(
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withValues(
+                                            alpha: 0.08,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: Colors.green.withValues(
+                                              alpha: 0.35,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.check_circle,
+                                                  color: Colors.green,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Text(
+                                                    'Last Served: Token $serving',
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 16,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            const Text(
+                                              'Status: Completed',
+                                              style: TextStyle(
+                                                color: Colors.green,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            const Text(
+                                              'No patients waiting',
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+
+                                    if (noOneWaiting) {
+                                      return Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blueGrey.withValues(
+                                            alpha: 0.08,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          serving > 0
+                                              ? 'Last Served: Token $serving\nNo patients waiting'
+                                              : 'No patients waiting',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      );
                                     }
 
                                     return ListTile(
@@ -258,7 +373,9 @@ final history = appointments.where((doc) {
                                         size: 32,
                                       ),
                                       title: Text(
-                                        'Currently Serving: Token $serving',
+                                        serving > 0
+                                            ? 'Currently Serving: Token $serving'
+                                            : 'Waiting for service to start',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                         ),
